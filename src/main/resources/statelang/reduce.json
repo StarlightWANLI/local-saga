@@ -1,0 +1,363 @@
+{
+  "nodes": [
+    {
+      "type": "node",
+      "size": "80*72",
+      "shape": "flow-rhombus",
+      "color": "#13C2C2",
+      "label": "Choice",
+      "stateId": "ChoiceState",
+      "stateType": "Choice",
+      "x": 467.875,
+      "y": 286.5,
+      "id": "c11238b3",
+      "stateProps": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Expression": "[reduceInventoryResult] == true",
+            "Next": "ReduceBalance"
+          }
+        ],
+        "Default": "Fail"
+      },
+      "index": 7
+    },
+    {
+      "type": "node",
+      "size": "39*39",
+      "shape": "flow-circle",
+      "color": "red",
+      "label": "Catch",
+      "stateId": "Catch",
+      "stateType": "Catch",
+      "x": 522.625,
+      "y": 430,
+      "id": "053ac3ac",
+      "index": 8
+    },
+    {
+      "type": "node",
+      "size": "72*72",
+      "shape": "flow-circle",
+      "color": "#FA8C16",
+      "label": "Start",
+      "stateId": "Start",
+      "stateType": "Start",
+      "stateProps": {
+        "StateMachine": {
+          "Name": "reduceInventoryAndBalance",
+          "Comment": "reduce inventory then reduce balance in a transaction",
+          "Version": "0.0.1"
+        },
+        "Next": "InventoryAction"
+      },
+      "x": 467.875,
+      "y": 53,
+      "id": "973bd79e",
+      "index": 13
+    },
+    {
+      "type": "node",
+      "size": "110*48",
+      "shape": "flow-rect",
+      "color": "#1890FF",
+      "label": "InventoryAction",
+      "stateId": "InventoryAction",
+      "stateType": "ServiceTask",
+      "stateProps": {
+        "Type": "ServiceTask",
+        "ServiceName": "inventoryAction",
+        "Next": "ChoiceState",
+        "ServiceMethod": "reduce",
+        "Input": [
+          "$.[businessKey]",
+          "$.[count]"
+        ],
+        "Output": {
+          "reduceInventoryResult": "$.#root"
+        },
+        "Status": {
+          "#root == true": "SU",
+          "#root == false": "FA",
+          "$Exception{java.lang.Throwable}": "UN"
+        },
+        "CompensateState": "CompensateReduceInventory"
+      },
+      "x": 468.375,
+      "y": 172.5,
+      "id": "e17372e4",
+      "index": 14
+    },
+    {
+      "type": "node",
+      "size": "110*48",
+      "shape": "flow-rect",
+      "color": "#1890FF",
+      "label": "ReduceBalance",
+      "stateId": "ReduceBalance",
+      "stateType": "ServiceTask",
+      "stateProps": {
+        "Type": "ServiceTask",
+        "ServiceName": "balanceAction",
+        "ServiceMethod": "reduce",
+        "CompensateState": "CompensateReduceBalance",
+        "Input": [
+          "$.[businessKey]",
+          "$.[amount]",
+          {
+            "throwException": "$.[mockReduceBalanceFail]"
+          }
+        ],
+        "Output": {
+          "compensateReduceBalanceResult": "$.#root"
+        },
+        "Status": {
+          "#root == true": "SU",
+          "#root == false": "FA",
+          "$Exception{java.lang.Throwable}": "UN"
+        },
+        "Retry": [
+          {
+            "Exceptions": [
+              "java.lang.RuntimeException"
+            ],
+            "IntervalSeconds": 1.5,
+            "MaxAttempts": 3,
+            "BackoffRate": 1.5
+          },
+          {
+            "IntervalSeconds": 1,
+            "MaxAttempts": 3,
+            "BackoffRate": 1.5
+          }
+        ],
+        "Next": "Succeed"
+      },
+      "x": 467.125,
+      "y": 411,
+      "id": "a6c40952",
+      "index": 15
+    },
+    {
+      "type": "node",
+      "size": "110*48",
+      "shape": "flow-capsule",
+      "color": "#722ED1",
+      "label": "CompensateReduceInventory",
+      "stateId": "CompensateReduceInventory",
+      "stateType": "Compensation",
+      "stateProps": {
+        "Type": "ServiceTask",
+        "ServiceName": "inventoryAction",
+        "ServiceMethod": "compensateReduce",
+        "Input": [
+          "$.[businessKey]"
+        ]
+      },
+      "x": 264.875,
+      "y": 171,
+      "id": "3b348652",
+      "index": 16
+    },
+    {
+      "type": "node",
+      "size": "110*48",
+      "shape": "flow-capsule",
+      "color": "#722ED1",
+      "label": "CompensateReduceBalance",
+      "stateId": "CompensateReduceBalance",
+      "stateType": "Compensation",
+      "stateProps": {
+        "Type": "Compensation",
+        "ServiceName": "inventoryAction",
+        "ServiceMethod": "compensateReduce",
+        "Input": [
+          "$.[businessKey]"
+        ]
+      },
+      "x": 262.125,
+      "y": 411,
+      "id": "13b600b1",
+      "index": 17
+    },
+    {
+      "type": "node",
+      "size": "72*72",
+      "shape": "flow-circle",
+      "color": "#05A465",
+      "label": "Succeed",
+      "stateId": "Succeed",
+      "stateType": "Succeed",
+      "x": 468.125,
+      "y": 568,
+      "id": "690e5c5e",
+      "stateProps": {
+        "Type": "Succeed"
+      },
+      "index": 18
+    },
+    {
+      "type": "node",
+      "size": "110*48",
+      "shape": "flow-capsule",
+      "color": "red",
+      "label": "Compensation\nTrigger",
+      "stateId": "CompensationTrigger",
+      "stateType": "CompensationTrigger",
+      "x": 783.625,
+      "y": 417.5,
+      "id": "757e057f",
+      "stateProps": {
+        "Type": "CompensationTrigger",
+        "Next": "Fail"
+      },
+      "index": 19
+    },
+    {
+      "type": "node",
+      "size": "72*72",
+      "shape": "flow-circle",
+      "color": "red",
+      "label": "Fail",
+      "stateId": "Fail",
+      "stateType": "Fail",
+      "stateProps": {
+        "Type": "Fail",
+        "ErrorCode": "PURCHASE_FAILED",
+        "Message": "purchase failed"
+      },
+      "x": 783.625,
+      "y": 286,
+      "id": "0131fc0c",
+      "index": 20
+    },
+    {
+      "type": "node",
+      "size": "39*39",
+      "shape": "flow-circle",
+      "color": "red",
+      "label": "Catch",
+      "stateId": "Catch7",
+      "stateType": "Catch",
+      "x": 524.625,
+      "y": 194,
+      "id": "253539d0"
+    }
+  ],
+  "edges": [
+    {
+      "source": "973bd79e",
+      "sourceAnchor": 2,
+      "target": "e17372e4",
+      "targetAnchor": 0,
+      "id": "f0a9008f",
+      "index": 0
+    },
+    {
+      "source": "a6c40952",
+      "sourceAnchor": 2,
+      "target": "690e5c5e",
+      "targetAnchor": 0,
+      "id": "da5a6275",
+      "index": 1
+    },
+    {
+      "source": "e17372e4",
+      "sourceAnchor": 2,
+      "target": "c11238b3",
+      "targetAnchor": 0,
+      "id": "cd8c3104",
+      "index": 2
+    },
+    {
+      "source": "c11238b3",
+      "sourceAnchor": 2,
+      "target": "a6c40952",
+      "targetAnchor": 0,
+      "id": "e47e49bc",
+      "stateProps": {
+        "Expression": "[reduceInventoryResult] == true",
+        "Next": "ReduceBalance"
+      },
+      "label": "",
+      "shape": "flow-smooth",
+      "index": 3
+    },
+    {
+      "source": "c11238b3",
+      "sourceAnchor": 1,
+      "target": "0131fc0c",
+      "targetAnchor": 3,
+      "id": "e3f9e775",
+      "stateProps": {
+        "Expression": "[reduceInventoryResult] != true",
+        "Next": "Fail"
+      },
+      "label": "",
+      "shape": "flow-smooth",
+      "index": 4
+    },
+    {
+      "source": "053ac3ac",
+      "sourceAnchor": 1,
+      "target": "757e057f",
+      "targetAnchor": 3,
+      "id": "3f7fe6ad",
+      "stateProps": {
+        "Exceptions": [
+          "java.lang.Throwable"
+        ],
+        "Next": "CompensationTrigger"
+      },
+      "label": "",
+      "shape": "flow-smooth",
+      "index": 5
+    },
+    {
+      "source": "e17372e4",
+      "sourceAnchor": 3,
+      "target": "3b348652",
+      "targetAnchor": 1,
+      "id": "52a2256e",
+      "style": {
+        "lineDash": "4"
+      },
+      "index": 10
+    },
+    {
+      "source": "a6c40952",
+      "sourceAnchor": 3,
+      "target": "13b600b1",
+      "targetAnchor": 1,
+      "id": "474512d9",
+      "style": {
+        "lineDash": "4"
+      },
+      "index": 11
+    },
+    {
+      "source": "757e057f",
+      "sourceAnchor": 0,
+      "target": "0131fc0c",
+      "targetAnchor": 2,
+      "id": "1abf48fa",
+      "index": 12
+    },
+    {
+      "source": "253539d0",
+      "sourceAnchor": 1,
+      "target": "757e057f",
+      "targetAnchor": 1,
+      "id": "fa079e06",
+      "stateProps": {
+        "Exceptions": [
+          "java.lang.Throwable"
+        ],
+        "Next": "CompensationTrigger"
+      },
+      "label": "",
+      "shape": "flow-smooth"
+    }
+  ]
+}
